@@ -10,7 +10,8 @@ from lib.diarization import DiarizationPostProcessor, format_ts
 from lib.audio import AudioPreProcessor
 import openai
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 class Predictor(BasePredictor):
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
@@ -37,7 +38,6 @@ class Predictor(BasePredictor):
         })
         self.diarization_post = DiarizationPostProcessor()
         
-        # Initialize OpenAI API key
         openai.api_key = os.getenv("OPENAI_API_KEY")
         if not openai.api_key:
             raise ValueError("OpenAI API key is not set. Please set the OPENAI_API_KEY environment variable.")

@@ -35,15 +35,12 @@ class DiarizationPostProcessor:
 
     def process(self, diarization, embeddings):
         print('post-processing diarization...')
-        # create a new label generator
         self.labels = SpeakerLabelGenerator()
 
-        # process the diarization
         clean_segments = self.clean_segments(diarization)
         merged_segments = self.merge_segments(clean_segments)
         emb_segments = self.segment_embeddings(merged_segments, embeddings)
 
-        # create the speaker embeddings
         speaker_embeddings = self.create_speaker_embeddings(emb_segments)
         speaker_count = self.labels.count
         speaker_labels = self.labels.get_all()
@@ -51,9 +48,6 @@ class DiarizationPostProcessor:
         for label in speaker_labels:
             speaker_emb_map[label] = speaker_embeddings[label].tolist()
 
-        # create the final output
-        # segments = self.format_segments(emb_segments)
-        # segments = self.format_segments_extra(emb_segments, speaker_embeddings)
         return {
             "segments": emb_segments,
             "speakers": {
@@ -77,14 +71,11 @@ class DiarizationPostProcessor:
         speaker_time = collections.defaultdict(float)
         total_time = 0.0
         for segment, _, speaker in diarization.itertracks(yield_label=True):
-            # filter out segments that are too short
             if segment.duration < self.MIN_SEGMENT_DURATION:
                 continue
             speaker_time[speaker] += segment.duration
             total_time += segment.duration
 
-        # filter out speakers that have spoken too little
-        # (these are likely overlaps misclassified as separate speakers)
         speakers = set([
             speaker
             for speaker, time in speaker_time.items()
@@ -104,7 +95,6 @@ class DiarizationPostProcessor:
         return segments
 
     def merge_segments(self, clean_segments):
-        # merge adjacent segments if they have the same speaker and are close enough
         merged = []
         for segment in clean_segments:
             if not merged:
@@ -118,26 +108,21 @@ class DiarizationPostProcessor:
         return merged
 
     def segment_embeddings(self, merged_segments, embeddings):
-        # process the embeddings
         for i, chunk in enumerate(embeddings['data']):
-            # chunk shape: (local_num_speakers, dimension)
             speakers = []
             for speaker_embedding in chunk:
                 if not np.all(np.isnan(speaker_embedding)):
                     speakers.append(speaker_embedding)
             if len(speakers) != 1:
-                # ignore this chunk
                 continue
-            # now we have a single speaker for this chunk
+
             speaker = speakers[0]
 
-            # find the segment that this chunk belongs to
             chunk_start = i * embeddings['chunk_offset']
             chunk_end = chunk_start + embeddings['chunk_duration']
 
             for segment in merged_segments:
                 if (segment['start'] <= chunk_start) and (chunk_end <= segment['stop']):
-                    # this is the segment we're looking for
                     segment['embeddings'] = np.append(
                         segment['embeddings'],
                         [speaker],

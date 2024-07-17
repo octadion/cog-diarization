@@ -12,12 +12,10 @@ class AudioPreProcessor:
         self.error = None
 
     def process(self, audio_file):
-        # create a new temp dir for every run
         self.tmpdir = pathlib.Path(tempfile.mkdtemp())
         self.output_path = str(self.tmpdir / 'audio.wav')
         self.error = None
 
-        # converts audio file to 16kHz 16bit mono wav...
         print('pre-processing audio file...')
         stream = ffmpeg.input(audio_file, vn=None, hide_banner=None)
         stream = stream.output(self.output_path, format='wav',
